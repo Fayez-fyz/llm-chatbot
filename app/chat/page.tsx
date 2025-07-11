@@ -13,7 +13,7 @@ export default async function Page() {
 
   return (
    <>
-    <ChatMain />
+    <ChatMain userId={data.user.id} />
    </>
   );
 }

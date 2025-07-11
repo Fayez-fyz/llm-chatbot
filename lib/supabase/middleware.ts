@@ -45,13 +45,44 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  const pathname = request.nextUrl.pathname;
+
+  // Define protected and unprotected routes
+  const protectedRoutes = ['/update-password', '/chat'];
+  const unprotectedRoutes = [
+    '/',
+    '/auth/login',
+    '/auth/signup',
+    '/auth/sign-up-success',
+    '/auth/forgot-password'
+  ];
+
+  // Check if current path is protected
+  const isProtectedRoute = protectedRoutes.some(route => 
+    pathname === route || pathname.startsWith(route + '/')
+  );
+
+  // Check if current path is unprotected
+  const isUnprotectedRoute = unprotectedRoutes.some(route => 
+    pathname === route || pathname.startsWith(route + '/')
+  );
+
+  // If user is not authenticated and trying to access protected route
+  if (!user && isProtectedRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/login";
+    return NextResponse.redirect(url);
+  }
+
+  // If user is authenticated and trying to access auth pages, redirect to home
+  if (user && (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup'))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  // For any other routes not explicitly defined, require authentication
+  if (!user && !isUnprotectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
